@@ -1,0 +1,47 @@
+Passwordless login/access to Piwigo from Wordpress.
+
+Introduction.
+Wordpress and Piwigo both are great!
+How about integrating them, and have the best of both worlds?
+
+
+
+Below I describe how I implemented a (working) prototype that provides “Single Sign On” (SSO) from Wordpress to Piwigo.
+
+This is how it works:
+1: The user logs in into Wordpress with username and authenticates with password.
+
+2: Upon successful login, a randomised one-time- token is placed in the piwigo_users table.
+   If the piwigo user does not yet exist then the user is created in the piwigo site.
+
+3: The shortcode [PIWIGO_LOGIN] in Wordpress pages and/or text widgets is replaced by a link to the Piwigo site. The link contains username ant one-time token.
+
+4: By pressing the link, the piwigo site checks the token in the url by comparing it to the toke stored in the piwigo_users table.
+
+5: If equal the you are logged in, both in Wordpress and Piwigo with the same username.
+
+
+Some implementation details:
+In my prototype both Piwigo and Wordpress use the same database.
+
+Wordpress:
+The plugin “wp-pwglogin” provides an admin panel to fill-in:
+— the URL of the piwigo site
+— the admin user name and password (used to add users to piwigo).
+It provides code that handles the shortcode [PIWIGO_LOGIN] in posts or text widgets. The shortcode is replaced by a login link to the piwigo site with username and on-time token.
+
+Piwigo (see forum folder):
+A template extension: 
+../template-extension/distributed/wp_login_menubar.tpl
+Extends the menu bar to intercept the username and one-time-token from the invoking url.
+If present then a cookie is set with the one-time-token content. Also the login button is triggered.
+Note: in the piwigo Configuration-Templates menu the menubar.tpl must be replaced by wp_login_menubar.tpl
+
+A piwigo plugin: 
+The plugin wp_login extends the normal piwigo login by means of adding the mywp_login function to the try_log_user event.
+The my_wp_login function compares the username and one_time_token from the URL (which was passed as a cookie) with the one_time_token in the piwigo_users table.
+Upon token equality success is returned by my_wp_login. The user will be logged in.
+
+Note:
+A column “one_time_token” must be added to the piwigo_users table like so:
+ALTER TABLE piwigo_users ADD COLUMN one_time_token VARCHAR(16);
